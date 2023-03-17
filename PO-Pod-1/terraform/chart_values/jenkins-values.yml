@@ -1,0 +1,54 @@
+controller:
+  resources:
+    requests:
+      cpu: "50m"
+      memory: "256Mi"
+    limits:
+      cpu: "900m"
+      memory: "1000Mi"
+  tolerations:
+    - effect: NoSchedule
+      key: role
+      operator: Equal
+      value: green
+  installPlugins:
+    - kubernetes
+    - workflow-aggregator
+    - git
+    - configuration-as-code
+    - docker-workflow
+    - workflow-aggregator
+    - github-branch-source
+    - docker-plugin
+    - pipeline-stage-view
+    - timestamper
+    - github
+  JCasC:
+    defaultConfig: true
+  # to get generated password: kubectl get secret [--namespace [namespace]] [release] -o jsonpath="{.data.jenkins-admin-password}" | base64 --decode ; echo
+  jenkinsUriPrefix: "/jenkins"
+  ingress:
+    enabled: true
+    paths: []
+    apiVersion: networking.k8s.io/v1
+    ingressClassName: nginx
+    path: "/jenkins"
+
+agent:
+  resources:
+    requests:
+      cpu: "512m"
+      memory: "512Mi"
+    limits:
+      cpu: "512m"
+      memory: "512Mi"
+  yamlMergeStrategy: "merge"
+  podTemplates:
+    planetarium: |
+      - name: planetarium
+        label: jenkins-planetarium
+        serviceAccount: jenkins
+        containers:
+        - name: docker
+          image: docker:18-dind
+          privileged: true

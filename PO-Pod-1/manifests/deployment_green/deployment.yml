@@ -1,0 +1,60 @@
+apiVersion: "apps/v1"
+kind: "Deployment"
+metadata:
+  name: "planetarium-deployment-green"
+  namespace: "default"
+  labels:
+    app: "planetarium" # doulbe check that this is right
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: "planetarium" # does this need role
+      role: "green"
+  template:
+    metadata:
+      labels:
+        app: "planetarium"
+        role: "green"
+    spec:
+      containers:
+        - name: "planetarium"
+          image: "esuminski/p3planetarium:base" # twcl774/p3green:test # ${VERSION}
+          envFrom:
+            - secretRef:
+                name: planetarium-secret # double check
+          imagePullPolicy: "Always"
+          ports:
+            - containerPort: 8080
+          volumeMounts:
+            - mountPath: /logs
+              name: logs
+        - name: promtail-container # does promtail stuff need to be updated
+          image: grafana/promtail
+          args:
+            - -config.file=/etc/promtail/promtail.yml
+          volumeMounts:
+            - name: logs
+              mountPath: /logs
+            - name: green-promtail
+              mountPath: /etc/promtail
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: kubernetes.io/hostname
+                    operator: In
+                    values:
+                      - gke-my-first-cluster-1-default-pool-de80b027-v0v9
+      tolerations:
+        - effect: NoSchedule
+          key: role
+          operator: Equal
+          value: green
+
+      volumes:
+        - name: logs
+        - name: green-promtail
+          configMap:
+            name: green-promtail # make sure you apply the config map before this deployment
